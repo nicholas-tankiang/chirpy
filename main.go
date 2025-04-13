@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -11,8 +12,16 @@ func main() {
 		Addr:    ":8080",
 		Handler: mux,
 	}
-	mux.Handle("/", http.FileServer(http.Dir(".")))
+	fileServer := http.FileServer(http.Dir("."))
+	mux.Handle("/app/", http.StripPrefix("/app", fileServer))
+	mux.HandleFunc("/healthz", healthzHandler)
 
-	server.ListenAndServe()
+	log.Fatal(server.ListenAndServe())
 
+}
+
+func healthzHandler(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
