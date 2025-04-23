@@ -36,7 +36,7 @@ func main() {
 	dbQueries := database.New(dbConnection)
 
 	fileServer := http.FileServer(http.Dir("."))
-	//apiConfig instance for filserverHits counter
+	//apiConfig instance
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
@@ -47,6 +47,8 @@ func main() {
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(fileServer)))
 
 	mux.HandleFunc("GET /api/healthz", healthzHandler)
+	mux.HandleFunc("GET /api/chirps", apiCfg.getChirpsHandler)
+
 	mux.HandleFunc("POST /api/chirps", apiCfg.chirpHandler)
 	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)
 	mux.HandleFunc("POST /admin/reset", apiCfg.resetHandler)

@@ -64,6 +64,28 @@ func (cfg *apiConfig) chirpHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (cfg *apiConfig) getChirpsHandler(w http.ResponseWriter, r *http.Request) {
+	rawChirps, err := cfg.db.GetChirps(r.Context())
+	if err != nil {
+		errorResponse(w, http.StatusInternalServerError, "Error retrieving chirps", err)
+		return
+	}
+
+	//map database model format []database.Chirp to the API model format of JSON field names
+	responseChirps := []Chirp{}
+	for _, dbChirp := range rawChirps {
+		responseChirps = append(responseChirps, Chirp{
+			ID:        dbChirp.ID,
+			CreatedAt: dbChirp.CreatedAt,
+			UpdatedAt: dbChirp.UpdatedAt,
+			Body:      dbChirp.Body,
+			UserID:    dbChirp.UserID,
+		})
+	}
+
+	jsonResponse(w, 200, responseChirps)
+}
+
 // converts words in map to censor
 func cleanChirp(body string) string {
 	censor := "****"
