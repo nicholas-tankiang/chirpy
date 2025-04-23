@@ -1,11 +1,70 @@
 package main
 
 import (
+	"chirpy/internal/database"
+	"encoding/json"
+	"net/http"
 	"strings"
+	"time"
+
+	"github.com/google/uuid"
 )
 
-// converts words in map to censor
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
+}
 
+func (cfg *apiConfig) chirpHandler(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Body   string    `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
+	}
+	type response struct {
+		Chirp
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		errorResponse(w, 500, "Error decoding parameters", err)
+		return
+	}
+
+	// validate chirp
+	if len(params.Body) > 140 {
+		errorResponse(w, 400, "Chirp is too long", nil)
+		return
+	}
+
+	chirp, err := cfg.db.CreateChirp(
+		r.Context(),
+		database.CreateChirpParams{
+			Body:   cleanChirp(params.Body),
+			UserID: params.UserID,
+		},
+	)
+	if err != nil {
+		errorResponse(w, 500, "Error creating chirp", err)
+		return
+	}
+
+	jsonResponse(w, 201, response{
+		Chirp: Chirp{
+			ID:        chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      chirp.Body,
+			UserID:    chirp.UserID,
+		},
+	})
+}
+
+// converts words in map to censor
 func cleanChirp(body string) string {
 	censor := "****"
 	profaneWordsMap := map[string]bool{

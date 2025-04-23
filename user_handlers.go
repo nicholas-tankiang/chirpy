@@ -19,6 +19,7 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 	type parameters struct {
 		Email string `json:"email"`
 	}
+	// User struct embedded in a response in case of future additions
 	type response struct {
 		User
 	}
