@@ -86,6 +86,31 @@ func (cfg *apiConfig) getChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, 200, responseChirps)
 }
 
+func (cfg *apiConfig) getSpecificChirpHandler(w http.ResponseWriter, r *http.Request) {
+	chirpIDString := r.PathValue("chirpID")
+	chirpID, err := uuid.Parse(chirpIDString)
+	if err != nil {
+		errorResponse(w, http.StatusNotFound, "Chirp not found", err)
+		return
+	}
+
+	rawChirp, err := cfg.db.GetSpecificChirp(r.Context(), chirpID)
+	if err != nil {
+		errorResponse(w, http.StatusInternalServerError, "Error retrieving chirps", err)
+		return
+	}
+
+	responseChirp := Chirp{
+		ID:        rawChirp.ID,
+		CreatedAt: rawChirp.CreatedAt,
+		UpdatedAt: rawChirp.UpdatedAt,
+		Body:      rawChirp.Body,
+		UserID:    rawChirp.UserID,
+	}
+
+	jsonResponse(w, http.StatusOK, responseChirp)
+}
+
 // converts words in map to censor
 func cleanChirp(body string) string {
 	censor := "****"
