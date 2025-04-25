@@ -1,6 +1,8 @@
 package main
 
 import (
+	"chirpy/internal/auth"
+	"chirpy/internal/database"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -17,7 +19,8 @@ type User struct {
 
 func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	// User struct embedded in a response in case of future additions
 	type response struct {
@@ -32,7 +35,17 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, err := cfg.db.CreateUser(r.Context(), params.Email)
+	//cannot directly pass the hashpassword output to CreateUser, storing in hash
+	hash, err := auth.HashPassword(params.Password)
+	if err != nil {
+		errorResponse(w, http.StatusInternalServerError, "Failed to hash password", err)
+	}
+
+	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
+		Email:          params.Email,
+		HashedPassword: hash,
+	},
+	)
 	if err != nil {
 		errorResponse(w, 500, "Error creating user", err)
 		return
